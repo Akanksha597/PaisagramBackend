@@ -3,36 +3,46 @@ const CampaionForm = require("../models/CampaionForm");
 // SUBMIT FORM
 exports.submitForm = async (req, res) => {
   try {
-    let {
+    const {
       eventName,
-      eventDescription,
+      eventCategory,
       name,
       email,
       mobile,
       occupation,
+      isMobileVerified,
     } = req.body;
 
     if (!eventName || !name || !mobile) {
       return res.status(400).json({
         success: false,
-        message: "All required fields must be filled",
+        message: "Required fields missing",
       });
     }
 
     if (mobile.length !== 10) {
       return res.status(400).json({
         success: false,
-        message: "Mobile number must be 10 digits",
+        message: "Mobile must be 10 digits",
+      });
+    }
+
+    // ✅ BLOCK if individual & not verified
+    if (eventCategory === "individual" && !isMobileVerified) {
+      return res.status(403).json({
+        success: false,
+        message: "Mobile verification required",
       });
     }
 
     const formData = await CampaionForm.create({
-      eventName: eventName.trim(),
-      eventDescription,
-      name: name.trim(),
-      email: email.trim(),
-      mobile: mobile.trim(),
-      occupation: occupation.trim(),
+      eventName,
+      eventCategory,
+      name,
+      email,
+      mobile,
+      occupation,
+      isMobileVerified: eventCategory === "individual",
     });
 
     res.status(201).json({
@@ -40,10 +50,11 @@ exports.submitForm = async (req, res) => {
       message: "Form submitted successfully",
       data: formData,
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 
 // GET ALL FORMS
 exports.getForms = async (req, res) => {

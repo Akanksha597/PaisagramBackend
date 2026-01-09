@@ -1,32 +1,45 @@
 const Otp = require("../models/Otp");
 
 // SEND OTP
+const axios = require("axios");
+
 exports.sendOtp = async (req, res) => {
   try {
     const { mobile } = req.body;
 
-    if (!mobile || mobile.length !== 10) {
-      return res.status(400).json({ success: false, message: "Invalid mobile" });
-    }
+    const otp = Math.floor(100000 + Math.random() * 900000);
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    await Otp.findOneAndDelete({ mobile }); // remove old OTP
+    await Otp.findOneAndDelete({ mobile });
 
     await Otp.create({
       mobile,
       otp,
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 min
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
     });
 
-    // 👉 Integrate SMS gateway here
-    console.log("OTP:", otp);
+    // ✅ SEND SMS
+    await axios.post(
+      "https://www.fast2sms.com/dev/bulkV2",
+      {
+        route: "otp",
+        variables_values: otp,
+        numbers: mobile,
+      },
+      {
+        headers: {
+          authorization: process.env.FAST2SMS_API_KEY,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
     res.json({ success: true, message: "OTP sent" });
-  } catch {
-    res.status(500).json({ success: false, message: "Server error" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "OTP failed" });
   }
 };
+
 
 // VERIFY OTP
 exports.verifyOtp = async (req, res) => {

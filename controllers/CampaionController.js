@@ -12,7 +12,7 @@ exports.submitForm = async (req, res) => {
       occupation,
     } = req.body;
 
-    if (!eventName || !name || !email || !mobile || !occupation) {
+    if (!eventName || !name || !mobile) {
       return res.status(400).json({
         success: false,
         message: "All required fields must be filled",

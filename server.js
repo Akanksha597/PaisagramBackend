@@ -2,43 +2,32 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
-const { default: mongoose } = require("mongoose");
 
 dotenv.config();
-connectDB();
+
+let isConnected = false;
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
-let isconnected = false;
-async function connectDB(){
-  try{
-    await mongoose.connect(process.env.MONGO_URI,{
-      useNewUrlParser:true,
-      useUnifiedTopology:true,
-  });  isconnected = true;
-    console.log("MongoDB connected");
-  }  catch(err){
-    console.error(err.message);
-    process.exit(1);
-  }
-}
 
-//add middleware to check db connection
-app.use((req, res, next) => {
+// Middleware to ensure DB connection
+app.use(async (req, res, next) => {
   if (!isConnected) {
-       connectDB(); // assuming connectDB is async
+    try {
+      await connectDB();
+      isConnected = true;
+      console.log("MongoDB connected");
+    } catch (err) {
+      console.error("DB Connection Error:", err.message);
+      return res.status(500).json({ error: "Database connection failed" });
+    }
   }
-    next();
+  next();
 });
-  
+
 app.use("/api/campaion", require("./routes/CampaionRoutes"));
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/events", require("./routes/eventRoutes"));
 
-// const PORT = process.env.PORT || 5000;
-// app.listen(PORT, () =>
-//   console.log(`🚀 Server running on port ${PORT}`)
-// );
 module.exports = app;

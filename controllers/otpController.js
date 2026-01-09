@@ -26,26 +26,36 @@ exports.sendOtp = async (req, res) => {
     });
 
     // ✅ Send SMS via Fast2SMS (optional: comment out for testing)
-    if (!process.env.FAST2SMS_API_KEY) {
-      console.warn("FAST2SMS_API_KEY not set. OTP not sent via SMS.");
-    } else {
-      await axios.post(
-        "https://www.fast2sms.com/dev/bulkV2",
-        {
-          route: "otp",
-          sender_id: "FSTSMS", // check your Fast2SMS sender ID
-          message: `Your OTP is ${otp}`,
-          language: "english",
-          numbers: mobile,
+ // ✅ Send SMS via Fast2SMS (NON-BLOCKING)
+if (process.env.FAST2SMS_API_KEY) {
+  try {
+    await axios.post(
+      "https://www.fast2sms.com/dev/bulkV2",
+      {
+        route: "otp",
+        sender_id: "FSTSMS",
+        message: `Your OTP is ${otp}`,
+        language: "english",
+        numbers: mobile,
+      },
+      {
+        headers: {
+          authorization: process.env.FAST2SMS_API_KEY,
+          "Content-Type": "application/json",
         },
-        {
-          headers: {
-            authorization: process.env.FAST2SMS_API_KEY,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-    }
+      }
+    );
+  } catch (smsError) {
+    console.error(
+      "Fast2SMS failed:",
+      smsError.response?.data || smsError.message
+    );
+    // ❗ DO NOT throw error
+  }
+} else {
+  console.warn("FAST2SMS_API_KEY not set, OTP not sent via SMS");
+}
+
 
     console.log(`OTP for ${mobile} is ${otp}`); // For debugging
     res.json({ success: true, message: "OTP sent" });
